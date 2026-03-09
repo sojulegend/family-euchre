@@ -149,9 +149,12 @@
       const { useEffect, useMemo, useRef, useState } = React;
       const e = React.createElement;
 
-      const SUPABASE_URL = 'https://treoyzpkzeevobukrrtr.getSupabase().co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyZW95enBremVldm9idWtycnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzE4NjUsImV4cCI6MjA4ODYwNzg2NX0.cLu614hFO3UaP2TsEJhYpagmaxjwUjKEIrUIYsLxUVM';
-      const supabaseReady = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('YOUR_');
+      const SUPABASE_URL = 'https://treoyzpkzeevobukrrtr.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_ZhagHZ_ToN482QkL6ou9BA_eyimbKPB';
+      const supabaseReady =
+  SUPABASE_URL.startsWith('http') &&
+  SUPABASE_ANON_KEY &&
+  !SUPABASE_ANON_KEY.includes('YOUR_');
       let supabase = null;
       function getSupabase() {
         if (!supabase && supabaseReady && window.__supabaseCreateClient) {
