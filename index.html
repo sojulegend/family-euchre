@@ -149,10 +149,16 @@
       const { useEffect, useMemo, useRef, useState } = React;
       const e = React.createElement;
 
-      const SUPABASE_URL = 'https://treoyzpkzeevobukrrtr.supabase.co';
+      const SUPABASE_URL = 'https://treoyzpkzeevobukrrtr.getSupabase().co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyZW95enBremVldm9idWtycnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzE4NjUsImV4cCI6MjA4ODYwNzg2NX0.cLu614hFO3UaP2TsEJhYpagmaxjwUjKEIrUIYsLxUVM';
       const supabaseReady = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('YOUR_');
-      const supabase = supabaseReady && window.__supabaseCreateClient ? window.__supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+      let supabase = null;
+      function getSupabase() {
+        if (!supabase && supabaseReady && window.__supabaseCreateClient) {
+          supabase = window.__supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+        return supabase;
+      }
 
       const SUITS = ['♠', '♥', '♦', '♣'];
       const SUIT_NAMES = { '♠': 'Spades', '♥': 'Hearts', '♦': 'Diamonds', '♣': 'Clubs' };
@@ -409,7 +415,7 @@
         }, [copied]);
 
         useEffect(() => {
-          if (!supabaseReady || !room?.code) return;
+          if (!supabaseReady || !room?.code || !getSupabase()) return;
           fetchRoomData(room.code);
           const roomChannel = supabase
             .channel(`room-${room.code}`)
@@ -422,24 +428,24 @@
             .on('postgres_changes', { event: '*', schema: 'public', table: 'euchre_players', filter: `room_code=eq.${room.code}` }, () => fetchPlayers(room.code))
             .on('postgres_changes', { event: '*', schema: 'public', table: 'euchre_messages', filter: `room_code=eq.${room.code}` }, () => fetchMessages(room.code))
             .subscribe();
-          return () => { supabase.removeChannel(roomChannel); };
+          return () => { getSupabase().removeChannel(roomChannel); };
         }, [room?.code]);
 
         async function fetchRoomData(code) { await Promise.all([fetchRoom(code), fetchPlayers(code), fetchMessages(code)]); }
         async function fetchRoom(code) {
-          if (!supabase) return;
-          const { data, error } = await supabase.from('euchre_rooms').select('*').eq('code', code).single();
+          if (!getSupabase()) return;
+          const { data, error } = await getSupabase().from('euchre_rooms').select('*').eq('code', code).single();
           if (error) { setError(error.message); return; }
           setRoom(data); setGame(data.game_state || initialState());
         }
         async function fetchPlayers(code) {
-          if (!supabase) return;
-          const { data } = await supabase.from('euchre_players').select('*').eq('room_code', code).order('seat', { ascending: true });
+          if (!getSupabase()) return;
+          const { data } = await getSupabase().from('euchre_players').select('*').eq('room_code', code).order('seat', { ascending: true });
           setPlayers(data || []);
         }
         async function fetchMessages(code) {
-          if (!supabase) return;
-          const { data } = await supabase.from('euchre_messages').select('*').eq('room_code', code).order('created_at', { ascending: true }).limit(200);
+          if (!getSupabase()) return;
+          const { data } = await getSupabase().from('euchre_messages').select('*').eq('room_code', code).order('created_at', { ascending: true }).limit(200);
           setMessages(data || []);
         }
         async function createRoom() {
@@ -452,9 +458,9 @@
           const hostClientId = getClientId();
           const freshState = initialState();
           const hostSeat = preferredSeat === '' ? 0 : Number(preferredSeat);
-          const { error: roomError } = await supabase.from('euchre_rooms').insert({ code, host_seat: hostSeat, game_state: { ...freshState, hostSeat }, created_by: hostClientId });
+          const { error: roomError } = await getSupabase().from('euchre_rooms').insert({ code, host_seat: hostSeat, game_state: { ...freshState, hostSeat }, created_by: hostClientId });
           if (roomError) { setLoading(false); return setError(roomError.message); }
-          const { error: playerError } = await supabase.from('euchre_players').insert({ room_code: code, client_id: hostClientId, seat: hostSeat, name: playerName.trim() });
+          const { error: playerError } = await getSupabase().from('euchre_players').insert({ room_code: code, client_id: hostClientId, seat: hostSeat, name: playerName.trim() });
           if (playerError) { setLoading(false); return setError(playerError.message); }
           window.history.replaceState({}, '', `${window.location.pathname}?room=${code}`);
           await fetchRoomData(code);
@@ -468,19 +474,19 @@
           setLoading(true); setError('');
           localStorage.setItem('euchre_name', playerName.trim());
           if (preferredSeat !== '') localStorage.setItem('euchre_preferred_seat', preferredSeat);
-          const { data: roomData, error: roomError } = await supabase.from('euchre_rooms').select('*').eq('code', code).single();
+          const { data: roomData, error: roomError } = await getSupabase().from('euchre_rooms').select('*').eq('code', code).single();
           if (roomError || !roomData) { setLoading(false); return setError('Room not found.'); }
-          const { data: existingPlayers } = await supabase.from('euchre_players').select('*').eq('room_code', code).order('seat', { ascending: true });
+          const { data: existingPlayers } = await getSupabase().from('euchre_players').select('*').eq('room_code', code).order('seat', { ascending: true });
           const current = existingPlayers || [];
           const existingMe = current.find((p) => p.client_id === getClientId());
           if (existingMe) {
-            if (existingMe.name !== playerName.trim()) await supabase.from('euchre_players').update({ name: playerName.trim() }).eq('room_code', code).eq('client_id', getClientId());
+            if (existingMe.name !== playerName.trim()) await getSupabase().from('euchre_players').update({ name: playerName.trim() }).eq('room_code', code).eq('client_id', getClientId());
           } else {
             let desiredSeat = preferredSeat === '' ? null : Number(preferredSeat);
             if (desiredSeat !== null && current.some((p) => p.seat === desiredSeat)) desiredSeat = null;
             const openSeat = desiredSeat !== null ? desiredSeat : [0,1,2,3].find((seat) => !current.some((p) => p.seat === seat));
             if (openSeat === undefined) { setLoading(false); return setError('Room is full.'); }
-            const { error: joinError } = await supabase.from('euchre_players').insert({ room_code: code, client_id: getClientId(), seat: openSeat, name: playerName.trim() });
+            const { error: joinError } = await getSupabase().from('euchre_players').insert({ room_code: code, client_id: getClientId(), seat: openSeat, name: playerName.trim() });
             if (joinError) { setLoading(false); return setError(joinError.message); }
           }
           window.history.replaceState({}, '', `${window.location.pathname}?room=${code}`);
@@ -488,15 +494,15 @@
           setLoading(false);
         }
         async function updateGame(nextGame) {
-          if (!supabase || !room?.code) return;
-          const { error } = await supabase.from('euchre_rooms').update({ game_state: nextGame }).eq('code', room.code);
+          if (!getSupabase() || !room?.code) return;
+          const { error } = await getSupabase().from('euchre_rooms').update({ game_state: nextGame }).eq('code', room.code);
           if (error) setError(error.message);
         }
         async function sendMessage() {
-          if (!supabase || !room?.code || !me || !chatInput.trim()) return;
+          if (!getSupabase() || !room?.code || !me || !chatInput.trim()) return;
           const text = chatInput.trim().slice(0, 280);
           setChatInput('');
-          const { error } = await supabase.from('euchre_messages').insert({ room_code: room.code, seat: me.seat, name: me.name, body: text });
+          const { error } = await getSupabase().from('euchre_messages').insert({ room_code: room.code, seat: me.seat, name: me.name, body: text });
           if (error) setError(error.message);
         }
         async function startGame() { if (!iAmHost || !allSeatsFilled) return; await updateGame(dealNewHand({ ...initialState(), dealer: game.dealer, scores: game.scores, settings: game.settings })); }
@@ -509,7 +515,7 @@
           localStorage.setItem('euchre_preferred_seat', String(seat)); setPreferredSeat(String(seat));
           const existing = players.find((p) => p.client_id === getClientId());
           if (existing) {
-            const { error } = await supabase.from('euchre_players').update({ seat, name: playerName.trim() || existing.name }).eq('room_code', room.code).eq('client_id', getClientId());
+            const { error } = await getSupabase().from('euchre_players').update({ seat, name: playerName.trim() || existing.name }).eq('room_code', room.code).eq('client_id', getClientId());
             if (error) setError(error.message);
           }
         }
