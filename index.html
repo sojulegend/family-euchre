@@ -136,29 +136,23 @@
         .table-seat.east { right: 20px; }
       }
     </style>
-    <script type="importmap">
-      {
-        "imports": {
-          "react": "https://esm.sh/react@18.3.1",
-          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-          "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.56.0"
-        }
-      }
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script type="module">
+      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
+      window.__supabaseCreateClient = createClient;
     </script>
   </head>
   <body>
     <div id="app"></div>
-    <script type="module">
-      import React, { useEffect, useMemo, useRef, useState } from 'react';
-      import { createRoot } from 'react-dom/client';
-      import { createClient } from '@supabase/supabase-js';
-
+    <script>
+      const { useEffect, useMemo, useRef, useState } = React;
       const e = React.createElement;
 
       const SUPABASE_URL = 'https://treoyzpkzeevobukrrtr.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyZW95enBremVldm9idWtycnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzE4NjUsImV4cCI6MjA4ODYwNzg2NX0.cLu614hFO3UaP2TsEJhYpagmaxjwUjKEIrUIYsLxUVM';
       const supabaseReady = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('YOUR_');
-      const supabase = supabaseReady ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+      const supabase = supabaseReady && window.__supabaseCreateClient ? window.__supabaseCreateClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
       const SUITS = ['♠', '♥', '♦', '♣'];
       const SUIT_NAMES = { '♠': 'Spades', '♥': 'Hearts', '♦': 'Diamonds', '♣': 'Clubs' };
@@ -677,7 +671,12 @@
         );
       }
 
-      createRoot(document.getElementById('app')).render(e(App));
+      ReactDOM.createRoot(document.getElementById('app')).render(e(App));
+    </script>
+    <script>
+      if (!window.__supabaseCreateClient) {
+        document.getElementById('app').innerHTML = '<div style="max-width:760px;margin:40px auto;padding:24px;background:rgba(255,255,255,.95);border-radius:24px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-family:Inter,system-ui,sans-serif"><h1 style="margin:0 0 12px;font-size:28px">One tiny fix needed</h1><p style="margin:0 0 12px;color:#475569;line-height:1.5">The Supabase module did not load yet, so the page cannot start. Refresh once. If it still fails, your browser or network blocked the external module import.</p><p style="margin:0;color:#475569;line-height:1.5">If this keeps happening, ask Lauren to swap the Supabase import to a bundled version. Yes, the app is being dramatic.</p></div>';
+      }
     </script>
   </body>
 </html>
