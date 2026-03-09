@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Family Euchre</title>
+    <style>
+      :root {
+        --bg1: #0f172a;
+        --bg2: #14532d;
+        --panel: rgba(255,255,255,0.95);
+        --muted: #64748b;
+        --line: #dbe4ee;
+        --text: #0f172a;
+        --green: #166534;
+        --green-2: #1d7a52;
+        --amber: #f59e0b;
+        --rose: #e11d48;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at top, #1f6f4a, #0f172a 60%);
+        min-height: 100vh;
+      }
+      button, input, select { font: inherit; }
+      .app { max-width: 1380px; margin: 0 auto; padding: 20px; }
+      .grid { display: grid; gap: 20px; grid-template-columns: 1.35fr 0.75fr; }
+      .stack { display: grid; gap: 20px; }
+      .card {
+        background: var(--panel);
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.18);
+        overflow: hidden;
+      }
+      .card-header { padding: 22px 22px 0; }
+      .card-body { padding: 22px; }
+      .title { font-size: 28px; font-weight: 800; margin: 0 0 8px; }
+      .subtitle { color: var(--muted); font-size: 14px; line-height: 1.5; }
+      .row { display: flex; gap: 12px; }
+      .col { display: grid; gap: 12px; }
+      .grow { flex: 1; }
+      .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .join-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; }
+      input, select, textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: white;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 14px;
+        cursor: pointer;
+        transition: .15s ease;
+      }
+      button:hover { transform: translateY(-1px); }
+      button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+      .btn { background: #0f172a; color: white; }
+      .btn-outline { background: white; color: #0f172a; border: 1px solid var(--line); }
+      .btn-ghost { background: #eef2f7; color: #0f172a; }
+      .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; background: #eef2f7; font-size: 12px; }
+      .muted-box { background: #f1f5f9; border-radius: 18px; padding: 16px; }
+      .warn { background: #fff7ed; color: #9a3412; border-radius: 16px; padding: 12px 14px; font-size: 14px; }
+      .error { background: #fff1f2; color: #9f1239; border-radius: 16px; padding: 12px 14px; font-size: 14px; }
+      .good { background: #ecfdf5; color: #166534; border-radius: 16px; padding: 12px 14px; font-size: 14px; }
+      .table-card .card-header { background: #052e16; color: white; padding-bottom: 18px; }
+      .seat-buttons, .player-grid, .status-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .seat-btn { text-align: left; }
+      .player-spot {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 12px 14px;
+        background: white;
+      }
+      .player-spot.turn { background: #0f172a; color: white; }
+      .player-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 700; font-size: 14px; }
+      .mini { font-size: 12px; opacity: .8; }
+      .table {
+        position: relative;
+        border: 10px solid rgba(120,53,15,.85);
+        background: radial-gradient(circle at center, var(--green-2), var(--green));
+        min-height: 520px;
+        border-radius: 34px;
+        box-shadow: inset 0 0 30px rgba(0,0,0,.18);
+        overflow: hidden;
+      }
+      .table-seat { position: absolute; display: flex; gap: 8px; align-items: center; }
+      .table-seat.north { top: 24px; left: 50%; transform: translateX(-50%); flex-direction: column; }
+      .table-seat.south { bottom: 24px; left: 50%; transform: translateX(-50%); flex-direction: column; }
+      .table-seat.west { left: 24px; top: 50%; transform: translateY(-50%); flex-direction: column; }
+      .table-seat.east { right: 24px; top: 50%; transform: translateY(-50%); flex-direction: column; }
+      .seat-label { color: white; font-size: 14px; font-weight: 700; }
+      .card-row, .hand-row { display: flex; gap: 8px; flex-wrap: wrap; }
+      .card-col { display: flex; gap: 6px; flex-direction: column; }
+      .center {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      }
+      .center-grid { display: grid; grid-template-columns: repeat(2, minmax(90px, 1fr)); gap: 14px; }
+      .center-slot { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 90px; }
+      .center-label { color: rgba(255,255,255,.92); font-size: 12px; }
+      .playing-card, .back-card, .placeholder-card {
+        width: 64px; height: 96px; border-radius: 16px; border: 1px solid #cbd5e1;
+        background: white; box-shadow: 0 4px 14px rgba(0,0,0,.15); padding: 8px;
+        display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+      }
+      .small.playing-card, .small.back-card, .small.placeholder-card { width: 48px; height: 68px; border-radius: 12px; padding: 6px; }
+      .back-card { background: #1e293b; border-color: #334155; }
+      .back-fill { width: 100%; height: 100%; border-radius: 10px; background: rgba(51,65,85,.8); border: 1px solid #475569; }
+      .placeholder-card { background: transparent; border-style: dashed; border-color: rgba(255,255,255,.4); box-shadow: none; }
+      .red { color: #dc2626; }
+      .black { color: #111827; }
+      .playing-card.clickable { cursor: pointer; }
+      .playing-card.clickable:hover { transform: translateY(-2px); }
+      .playing-card.disabled { opacity: .45; cursor: not-allowed; }
+      .action-stack, .notes { display: grid; gap: 12px; }
+      .chat-log {
+        height: 320px; overflow-y: auto; background: #f1f5f9; border-radius: 18px; padding: 12px; display: grid; gap: 10px;
+      }
+      .msg { background: white; border-radius: 16px; padding: 10px 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+      .msg-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+      .checkbox { display: flex; gap: 10px; align-items: center; background: #f1f5f9; border-radius: 14px; padding: 12px; font-size: 14px; }
+      .notes { font-size: 14px; color: #334155; line-height: 1.5; }
+      .footer-gap { height: 6px; }
+      @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+      @media (max-width: 720px) {
+        .controls, .join-row, .seat-buttons, .player-grid, .status-grid { grid-template-columns: 1fr; }
+        .app { padding: 14px; }
+        .table { min-height: 600px; }
+        .table-seat.west, .table-seat.east { top: auto; transform: none; bottom: 170px; }
+        .table-seat.west { left: 20px; }
+        .table-seat.east { right: 20px; }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.56.0"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import React, { useEffect, useMemo, useRef, useState } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { createClient } from '@supabase/supabase-js';
+
+      const e = React.createElement;
+
+      const SUPABASE_URL = 'https://treoyzpkzeevobukrrtr.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyZW95enBremVldm9idWtycnRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzE4NjUsImV4cCI6MjA4ODYwNzg2NX0.cLu614hFO3UaP2TsEJhYpagmaxjwUjKEIrUIYsLxUVM';
+      const supabaseReady = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('YOUR_');
+      const supabase = supabaseReady ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+      const SUITS = ['♠', '♥', '♦', '♣'];
+      const SUIT_NAMES = { '♠': 'Spades', '♥': 'Hearts', '♦': 'Diamonds', '♣': 'Clubs' };
+      const POSITIONS = ['South', 'West', 'North', 'East'];
+      const LEFT_BOWER = { '♥': '♦', '♦': '♥', '♠': '♣', '♣': '♠' };
+      const RANKS = ['9', '10', 'J', 'Q', 'K', 'A'];
+
+      function cx() { return Array.from(arguments).filter(Boolean).join(' '); }
+      function suitClass(suit) { return suit === '♥' || suit === '♦' ? 'red' : 'black'; }
+      function randomCode(length = 6) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let out = '';
+        for (let i = 0; i < length; i++) out += chars[Math.floor(Math.random() * chars.length)];
+        return out;
+      }
+      function getClientId() {
+        let id = localStorage.getItem('euchre_client_id');
+        if (!id) {
+          id = 'client_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+          localStorage.setItem('euchre_client_id', id);
+        }
+        return id;
+      }
+      function makeDeck() {
+        const deck = [];
+        for (const suit of SUITS) for (const rank of RANKS) deck.push({ suit, rank, id: rank + suit });
+        return deck;
+      }
+      function shuffle(array) {
+        const arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+      function isRightBower(card, trump) { return card.rank === 'J' && card.suit === trump; }
+      function isLeftBower(card, trump) { return card.rank === 'J' && card.suit === LEFT_BOWER[trump]; }
+      function effectiveSuit(card, trump) {
+        if (!card) return null;
+        if (isLeftBower(card, trump)) return trump;
+        return card.suit;
+      }
+      function cardPower(card, leadSuit, trump) {
+        if (isRightBower(card, trump)) return 200;
+        if (isLeftBower(card, trump)) return 199;
+        const effSuit = effectiveSuit(card, trump);
+        const trumpOrder = { A: 198, K: 197, Q: 196, '10': 195, '9': 194 };
+        const leadOrder = { A: 120, K: 119, Q: 118, J: 117, '10': 116, '9': 115 };
+        const offOrder = { A: 20, K: 19, Q: 18, J: 17, '10': 16, '9': 15 };
+        if (effSuit === trump) return trumpOrder[card.rank] ?? 190;
+        if (effSuit === leadSuit) return leadOrder[card.rank] ?? 0;
+        return offOrder[card.rank] ?? 0;
+      }
+      function determineTrickWinner(trick, leader, trump) {
+        const leadSuit = effectiveSuit(trick[0]?.card, trump);
+        let bestIndex = 0;
+        let bestPower = cardPower(trick[0].card, leadSuit, trump);
+        for (let i = 1; i < trick.length; i++) {
+          const power = cardPower(trick[i].card, leadSuit, trump);
+          if (power > bestPower) { bestPower = power; bestIndex = i; }
+        }
+        return (leader + bestIndex) % 4;
+      }
+      function getValidCards(hand, leadSuit, trump) {
+        if (!leadSuit) return hand;
+        const matching = hand.filter((card) => effectiveSuit(card, trump) === leadSuit);
+        return matching.length ? matching : hand;
+      }
+      function sortHand(hand, trump) {
+        const suitOrder = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
+        return [...hand].sort((a, b) => {
+          const aSuit = effectiveSuit(a, trump) || a.suit;
+          const bSuit = effectiveSuit(b, trump) || b.suit;
+          const aTrump = aSuit === trump;
+          const bTrump = bSuit === trump;
+          if (aTrump !== bTrump) return aTrump ? -1 : 1;
+          if (aSuit !== bSuit) return suitOrder[aSuit] - suitOrder[bSuit];
+          return cardPower(b, aSuit, trump) - cardPower(a, aSuit, trump);
+        });
+      }
+      function teamOfSeat(seat) { return seat % 2; }
+      function seatLabel(seat) { return POSITIONS[seat] || ('Seat ' + (seat + 1)); }
+      function scoreRound(makerTeam, tricksWon) {
+        const makerTricks = tricksWon[makerTeam];
+        const defenders = makerTeam === 0 ? 1 : 0;
+        if (makerTricks === 5) return { scores: { 0: 0, 1: 0, [makerTeam]: 2 }, summary: 'March. Making team took all 5 tricks for 2 points.' };
+        if (makerTricks >= 3) return { scores: { 0: 0, 1: 0, [makerTeam]: 1 }, summary: 'Making team made trump and scored 1 point.' };
+        return { scores: { 0: 0, 1: 0, [defenders]: 2 }, summary: 'Euchred. Defenders scored 2 points.' };
+      }
+      function initialState() {
+        return {
+          status: 'lobby', dealer: 0, hostSeat: 0, trump: null, makerTeam: null, orderingSeat: null,
+          currentTurn: 0, trickLeader: 0, currentTrick: [], turnedUp: null, hands: [[], [], [], []],
+          scores: { 0: 0, 1: 0 }, tricksWon: { 0: 0, 1: 0 }, orderingStage: 'round1',
+          message: 'Waiting in lobby.', handNumber: 0, roundSummary: '', winnerTeam: null,
+          aloneSeat: null, alonePartnerSeat: null, passedRound2: [], settings: { stickDealer: false, allowGoAlone: true }
+        };
+      }
+      function dealNewHand(state) {
+        const deck = shuffle(makeDeck());
+        const hands = [[], [], [], []];
+        let idx = 0;
+        for (let r = 0; r < 5; r++) for (let p = 1; p <= 4; p++) hands[(state.dealer + p) % 4].push(deck[idx++]);
+        const turnedUp = deck[idx];
+        return {
+          ...state, status: 'ordering', trump: null, makerTeam: null, orderingSeat: null,
+          currentTurn: (state.dealer + 1) % 4, trickLeader: (state.dealer + 1) % 4, currentTrick: [],
+          turnedUp, hands: hands.map((h) => sortHand(h, null)), tricksWon: { 0: 0, 1: 0 }, orderingStage: 'round1',
+          message: `Turn-up card is ${turnedUp.rank}${turnedUp.suit}. Order it up or pass.`,
+          handNumber: state.handNumber + 1, roundSummary: '', aloneSeat: null, alonePartnerSeat: null, passedRound2: []
+        };
+      }
+      function applyOrderUp(state, seat, goAlone = false) {
+        const trump = state.turnedUp.suit;
+        const dealerHand = [...state.hands[state.dealer], state.turnedUp];
+        dealerHand.sort((a, b) => cardPower(a, trump, trump) - cardPower(b, trump, trump));
+        dealerHand.shift();
+        const hands = state.hands.map((h, i) => i === state.dealer ? sortHand(dealerHand, trump) : sortHand(h, trump));
+        const alonePartnerSeat = goAlone ? (seat + 2) % 4 : null;
+        return { ...state, status: 'playing', trump, makerTeam: teamOfSeat(seat), orderingSeat: seat, hands,
+          currentTurn: (state.dealer + 1) % 4, trickLeader: (state.dealer + 1) % 4,
+          message: `${seatLabel(seat)} ordered up ${SUIT_NAMES[trump]}${goAlone ? ' and is going alone' : ''}.`,
+          aloneSeat: goAlone ? seat : null, alonePartnerSeat };
+      }
+      function applyChooseTrump(state, seat, suit, goAlone = false) {
+        const alonePartnerSeat = goAlone ? (seat + 2) % 4 : null;
+        return { ...state, status: 'playing', trump: suit, makerTeam: teamOfSeat(seat), orderingSeat: seat,
+          hands: state.hands.map((h) => sortHand(h, suit)), currentTurn: (state.dealer + 1) % 4,
+          trickLeader: (state.dealer + 1) % 4,
+          message: `${seatLabel(seat)} called ${SUIT_NAMES[suit]} trump${goAlone ? ' and is going alone' : ''}.`,
+          aloneSeat: goAlone ? seat : null, alonePartnerSeat };
+      }
+      function advancePass(state) {
+        const next = (state.currentTurn + 1) % 4;
+        if (state.orderingStage === 'round1') {
+          if (next === (state.dealer + 1) % 4) return { ...state, orderingStage: 'round2', currentTurn: (state.dealer + 1) % 4, message: `Everybody passed round 1. Pick trump other than ${SUIT_NAMES[state.turnedUp.suit]}.` };
+          return { ...state, currentTurn: next, message: `${seatLabel(state.currentTurn)} passed.` };
+        }
+        const passedRound2 = [...new Set([...(state.passedRound2 || []), state.currentTurn])];
+        const dealerMustChoose = state.settings?.stickDealer && passedRound2.includes((state.dealer + 3) % 4) && next === state.dealer;
+        if (dealerMustChoose) return { ...state, orderingStage: 'round2', currentTurn: state.dealer, passedRound2, message: 'Stick the dealer is on. Dealer must choose trump.' };
+        if (!state.settings?.stickDealer && next === (state.dealer + 1) % 4) return { ...dealNewHand({ ...state, dealer: (state.dealer + 1) % 4, status: 'lobby' }), message: 'Everyone passed both rounds. Hand redealt.' };
+        return { ...state, currentTurn: next, passedRound2, message: `${seatLabel(state.currentTurn)} passed again.` };
+      }
+      function activeSeatsForTrick(state) { return [0,1,2,3].filter((seat) => seat !== state.alonePartnerSeat); }
+      function nextActiveSeat(fromSeat, state) {
+        let s = fromSeat;
+        do { s = (s + 1) % 4; } while (s === state.alonePartnerSeat);
+        return s;
+      }
+      function scoreRoundExtended(makerTeam, tricksWon, aloneSeat) {
+        const base = scoreRound(makerTeam, tricksWon);
+        if (aloneSeat !== null && tricksWon[makerTeam] === 5) return { scores: { 0: 0, 1: 0, [makerTeam]: 4 }, summary: 'Loner march. Making team took all 5 tricks alone for 4 points.' };
+        return base;
+      }
+      function applyPlayCard(state, seat, cardId) {
+        if (state.status !== 'playing' || seat !== state.currentTurn || seat === state.alonePartnerSeat) return state;
+        const hand = state.hands[seat];
+        const card = hand.find((c) => c.id === cardId);
+        if (!card) return state;
+        const leadSuit = state.currentTrick.length ? effectiveSuit(state.currentTrick[0].card, state.trump) : null;
+        const valid = getValidCards(hand, leadSuit, state.trump);
+        if (!valid.some((c) => c.id === cardId)) return state;
+        const nextHands = state.hands.map((h, i) => i === seat ? h.filter((c) => c.id !== cardId) : h);
+        const nextTrick = [...state.currentTrick, { seat, card }];
+        const neededCards = activeSeatsForTrick(state).length;
+        if (nextTrick.length < neededCards) return { ...state, hands: nextHands, currentTrick: nextTrick, currentTurn: nextActiveSeat(seat, state), message: `${seatLabel(seat)} played ${card.rank}${card.suit}.` };
+        const winner = determineTrickWinner(nextTrick, state.trickLeader, state.trump);
+        const nextTricksWon = { ...state.tricksWon, [teamOfSeat(winner)]: state.tricksWon[teamOfSeat(winner)] + 1 };
+        const handEnded = activeSeatsForTrick(state).every((activeSeat) => nextHands[activeSeat].length === 0);
+        if (!handEnded) return { ...state, hands: nextHands, currentTrick: [], currentTurn: winner, trickLeader: winner, tricksWon: nextTricksWon, message: `${seatLabel(winner)} won the trick.` };
+        const scoring = scoreRoundExtended(state.makerTeam, nextTricksWon, state.aloneSeat);
+        const newScores = { 0: state.scores[0] + scoring.scores[0], 1: state.scores[1] + scoring.scores[1] };
+        const winnerTeam = newScores[0] >= 10 ? 0 : newScores[1] >= 10 ? 1 : null;
+        return { ...state, hands: nextHands, currentTrick: [], currentTurn: winner, trickLeader: winner, tricksWon: nextTricksWon, scores: newScores, roundSummary: scoring.summary, status: winnerTeam !== null ? 'gameover' : 'roundEnd', winnerTeam, message: winnerTeam !== null ? `Team ${winnerTeam === 0 ? 'South/North' : 'West/East'} wins the game.` : `${scoring.summary} Start next hand.` };
+      }
+
+      function Button({ children, onClick, variant = 'primary', disabled = false, className = '', type = 'button' }) {
+        return e('button', { type, onClick, disabled, className: cx(variant === 'primary' ? 'btn' : variant === 'outline' ? 'btn-outline' : 'btn-ghost', className) }, children);
+      }
+      function TextInput(props) { return e('input', props); }
+      function PlayingCard({ card, faceDown = false, small = false, placeholder = false, disabled = false, onClick }) {
+        if (placeholder) return e('div', { className: cx('placeholder-card', small && 'small') });
+        if (faceDown) return e('div', { className: cx('back-card', small && 'small') }, e('div', { className: 'back-fill' }));
+        const cls = cx('playing-card', small && 'small', onClick && !disabled && 'clickable', disabled && 'disabled');
+        return e('button', { className: cls, disabled: disabled || !onClick, onClick },
+          e('div', { className: cx('mini', suitClass(card.suit)) }, card.rank),
+          e('div', { className: cx(suitClass(card.suit)), style: { fontSize: small ? '20px' : '28px', fontWeight: '700' } }, card.suit),
+          e('div', { className: cx('mini', suitClass(card.suit)) }, card.rank)
+        );
+      }
+      function PlayerSpot({ label, name, isTurn, isDealer, isSelf, handCount, team }) {
+        return e('div', { className: cx('player-spot', isTurn && 'turn') },
+          e('div', { className: 'player-top' },
+            e('span', null, label),
+            name ? e('span', { className: 'mini' }, '· ', name) : e('span', { className: 'mini' }, '· empty'),
+            isSelf && e('span', { className: 'pill' }, 'You'),
+            isDealer && e('span', { className: 'pill' }, 'Dealer'),
+            e('span', { className: 'pill' }, 'Team ', String(team + 1))
+          ),
+          e('div', { className: 'mini', style: { marginTop: '6px' } }, 'Cards: ', String(handCount))
+        );
+      }
+
+      function App() {
+        const [playerName, setPlayerName] = useState(localStorage.getItem('euchre_name') || '');
+        const [preferredSeat, setPreferredSeat] = useState(localStorage.getItem('euchre_preferred_seat') || '');
+        const [goAloneChoice, setGoAloneChoice] = useState(false);
+        const [roomCodeInput, setRoomCodeInput] = useState('');
+        const [room, setRoom] = useState(null);
+        const [players, setPlayers] = useState([]);
+        const [game, setGame] = useState(initialState());
+        const [messages, setMessages] = useState([]);
+        const [chatInput, setChatInput] = useState('');
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState('');
+        const [copied, setCopied] = useState('');
+        const scrollRef = useRef(null);
+
+        const me = useMemo(() => players.find((p) => p.client_id === getClientId()), [players]);
+        const mySeat = me?.seat ?? null;
+        const myHand = mySeat !== null ? game.hands[mySeat] || [] : [];
+        const leadSuit = game.currentTrick.length ? effectiveSuit(game.currentTrick[0].card, game.trump) : null;
+        const validCards = useMemo(() => getValidCards(myHand, leadSuit, game.trump), [myHand, leadSuit, game.trump]);
+        const isMyTurn = mySeat !== null && game.currentTurn === mySeat;
+        const allSeatsFilled = players.length === 4;
+        const iAmHost = room && me && room.host_seat === me.seat;
+        const inviteLink = room?.code ? (window.location.origin + window.location.pathname + '?room=' + room.code) : '';
+        const seatToPlayer = useMemo(() => {
+          const map = {};
+          players.forEach((p) => { map[p.seat] = p; });
+          return map;
+        }, [players]);
+        const seatHandsCount = [0,1,2,3].map((seat) => game.hands?.[seat]?.length ?? 0);
+        const team0Name = `${seatToPlayer[0]?.name || 'South'} + ${seatToPlayer[2]?.name || 'North'}`;
+        const team1Name = `${seatToPlayer[1]?.name || 'West'} + ${seatToPlayer[3]?.name || 'East'}`;
+
+        useEffect(() => {
+          if (!scrollRef.current) return;
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }, [messages]);
+
+        useEffect(() => {
+          const params = new URLSearchParams(window.location.search);
+          const roomFromUrl = params.get('room');
+          if (roomFromUrl && !roomCodeInput && !room?.code) setRoomCodeInput(roomFromUrl.toUpperCase());
+        }, []);
+
+        useEffect(() => {
+          if (!copied) return;
+          const t = setTimeout(() => setCopied(''), 1500);
+          return () => clearTimeout(t);
+        }, [copied]);
+
+        useEffect(() => {
+          if (!supabaseReady || !room?.code) return;
+          fetchRoomData(room.code);
+          const roomChannel = supabase
+            .channel(`room-${room.code}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'euchre_rooms', filter: `code=eq.${room.code}` }, (payload) => {
+              if (payload.new) {
+                setRoom(payload.new);
+                setGame(payload.new.game_state);
+              }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'euchre_players', filter: `room_code=eq.${room.code}` }, () => fetchPlayers(room.code))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'euchre_messages', filter: `room_code=eq.${room.code}` }, () => fetchMessages(room.code))
+            .subscribe();
+          return () => { supabase.removeChannel(roomChannel); };
+        }, [room?.code]);
+
+        async function fetchRoomData(code) { await Promise.all([fetchRoom(code), fetchPlayers(code), fetchMessages(code)]); }
+        async function fetchRoom(code) {
+          if (!supabase) return;
+          const { data, error } = await supabase.from('euchre_rooms').select('*').eq('code', code).single();
+          if (error) { setError(error.message); return; }
+          setRoom(data); setGame(data.game_state || initialState());
+        }
+        async function fetchPlayers(code) {
+          if (!supabase) return;
+          const { data } = await supabase.from('euchre_players').select('*').eq('room_code', code).order('seat', { ascending: true });
+          setPlayers(data || []);
+        }
+        async function fetchMessages(code) {
+          if (!supabase) return;
+          const { data } = await supabase.from('euchre_messages').select('*').eq('room_code', code).order('created_at', { ascending: true }).limit(200);
+          setMessages(data || []);
+        }
+        async function createRoom() {
+          if (!supabaseReady) return setError('Add your Supabase URL and anon key first. Cute app, no backend, no party.');
+          if (!playerName.trim()) return setError('Enter your name first.');
+          setLoading(true); setError('');
+          localStorage.setItem('euchre_name', playerName.trim());
+          if (preferredSeat !== '') localStorage.setItem('euchre_preferred_seat', preferredSeat);
+          const code = randomCode();
+          const hostClientId = getClientId();
+          const freshState = initialState();
+          const hostSeat = preferredSeat === '' ? 0 : Number(preferredSeat);
+          const { error: roomError } = await supabase.from('euchre_rooms').insert({ code, host_seat: hostSeat, game_state: { ...freshState, hostSeat }, created_by: hostClientId });
+          if (roomError) { setLoading(false); return setError(roomError.message); }
+          const { error: playerError } = await supabase.from('euchre_players').insert({ room_code: code, client_id: hostClientId, seat: hostSeat, name: playerName.trim() });
+          if (playerError) { setLoading(false); return setError(playerError.message); }
+          window.history.replaceState({}, '', `${window.location.pathname}?room=${code}`);
+          await fetchRoomData(code);
+          setLoading(false);
+        }
+        async function joinRoom() {
+          if (!supabaseReady) return setError('Supabase config is missing.');
+          if (!playerName.trim()) return setError('Enter your name first.');
+          const code = roomCodeInput.trim().toUpperCase();
+          if (!code) return setError('Enter a room code.');
+          setLoading(true); setError('');
+          localStorage.setItem('euchre_name', playerName.trim());
+          if (preferredSeat !== '') localStorage.setItem('euchre_preferred_seat', preferredSeat);
+          const { data: roomData, error: roomError } = await supabase.from('euchre_rooms').select('*').eq('code', code).single();
+          if (roomError || !roomData) { setLoading(false); return setError('Room not found.'); }
+          const { data: existingPlayers } = await supabase.from('euchre_players').select('*').eq('room_code', code).order('seat', { ascending: true });
+          const current = existingPlayers || [];
+          const existingMe = current.find((p) => p.client_id === getClientId());
+          if (existingMe) {
+            if (existingMe.name !== playerName.trim()) await supabase.from('euchre_players').update({ name: playerName.trim() }).eq('room_code', code).eq('client_id', getClientId());
+          } else {
+            let desiredSeat = preferredSeat === '' ? null : Number(preferredSeat);
+            if (desiredSeat !== null && current.some((p) => p.seat === desiredSeat)) desiredSeat = null;
+            const openSeat = desiredSeat !== null ? desiredSeat : [0,1,2,3].find((seat) => !current.some((p) => p.seat === seat));
+            if (openSeat === undefined) { setLoading(false); return setError('Room is full.'); }
+            const { error: joinError } = await supabase.from('euchre_players').insert({ room_code: code, client_id: getClientId(), seat: openSeat, name: playerName.trim() });
+            if (joinError) { setLoading(false); return setError(joinError.message); }
+          }
+          window.history.replaceState({}, '', `${window.location.pathname}?room=${code}`);
+          await fetchRoomData(code);
+          setLoading(false);
+        }
+        async function updateGame(nextGame) {
+          if (!supabase || !room?.code) return;
+          const { error } = await supabase.from('euchre_rooms').update({ game_state: nextGame }).eq('code', room.code);
+          if (error) setError(error.message);
+        }
+        async function sendMessage() {
+          if (!supabase || !room?.code || !me || !chatInput.trim()) return;
+          const text = chatInput.trim().slice(0, 280);
+          setChatInput('');
+          const { error } = await supabase.from('euchre_messages').insert({ room_code: room.code, seat: me.seat, name: me.name, body: text });
+          if (error) setError(error.message);
+        }
+        async function startGame() { if (!iAmHost || !allSeatsFilled) return; await updateGame(dealNewHand({ ...initialState(), dealer: game.dealer, scores: game.scores, settings: game.settings })); }
+        async function nextHand() { if (!iAmHost) return; const nextDealer = (game.dealer + 1) % 4; await updateGame(dealNewHand({ ...game, dealer: nextDealer, status: 'lobby' })); }
+        async function resetGame() { if (!iAmHost) return; await updateGame({ ...initialState(), settings: game.settings || initialState().settings, hostSeat: game.hostSeat ?? 0 }); }
+        async function setSeat(seat) {
+          if (!supabase || !room?.code) return;
+          const taken = players.some((p) => p.seat === seat && p.client_id !== getClientId());
+          if (taken) return setError('That seat is already taken.');
+          localStorage.setItem('euchre_preferred_seat', String(seat)); setPreferredSeat(String(seat));
+          const existing = players.find((p) => p.client_id === getClientId());
+          if (existing) {
+            const { error } = await supabase.from('euchre_players').update({ seat, name: playerName.trim() || existing.name }).eq('room_code', room.code).eq('client_id', getClientId());
+            if (error) setError(error.message);
+          }
+        }
+        async function updateSettings(patch) { if (!iAmHost) return; await updateGame({ ...game, settings: { ...(game.settings || initialState().settings), ...patch } }); }
+        async function pass() { if (!isMyTurn) return; await updateGame(advancePass(game)); }
+        async function orderUp() { if (!isMyTurn || game.status !== 'ordering' || game.orderingStage !== 'round1') return; await updateGame(applyOrderUp(game, mySeat, !!goAloneChoice && !!game.settings?.allowGoAlone)); setGoAloneChoice(false); }
+        async function chooseTrump(suit) { if (!isMyTurn || game.status !== 'ordering' || game.orderingStage !== 'round2') return; if (suit === game.turnedUp?.suit) return; await updateGame(applyChooseTrump(game, mySeat, suit, !!goAloneChoice && !!game.settings?.allowGoAlone)); setGoAloneChoice(false); }
+        async function playCard(cardId) { if (!isMyTurn || game.status !== 'playing') return; await updateGame(applyPlayCard(game, mySeat, cardId)); }
+        async function copyText(text, kind) { try { await navigator.clipboard.writeText(text); setCopied(kind); } catch (err) { setError('Clipboard blocked. Please copy manually.'); } }
+
+        return e('div', { className: 'app' },
+          e('div', { className: 'grid' },
+            e('div', { className: 'stack' },
+              e('section', { className: 'card' },
+                e('div', { className: 'card-header' },
+                  e('h1', { className: 'title' }, 'Online Euchre Table'),
+                  e('div', { className: 'subtitle' }, '4 human players only. South + North vs West + East. Browser multiplayer, no robot filler players, no nonsense.')
+                ),
+                e('div', { className: 'card-body controls' },
+                  e('div', { className: 'col' },
+                    e('div', { className: 'controls' },
+                      e(TextInput, { value: playerName, onChange: (ev) => setPlayerName(ev.target.value), placeholder: 'Your name' }),
+                      e('select', { value: preferredSeat, onChange: (ev) => setPreferredSeat(ev.target.value) },
+                        e('option', { value: '' }, 'Preferred seat (any open)'),
+                        e('option', { value: '0' }, 'South'), e('option', { value: '1' }, 'West'), e('option', { value: '2' }, 'North'), e('option', { value: '3' }, 'East')
+                      )
+                    ),
+                    e('div', { className: 'join-row' },
+                      e(Button, { onClick: createRoom, disabled: loading }, 'Create Room'),
+                      e(TextInput, { value: roomCodeInput, onChange: (ev) => setRoomCodeInput(ev.target.value.toUpperCase()), placeholder: 'Room code' }),
+                      e(Button, { variant: 'outline', onClick: joinRoom, disabled: loading }, 'Join')
+                    ),
+                    !supabaseReady && e('div', { className: 'warn' }, 'Add your Supabase credentials first or the app will just sit there serving looks.'),
+                    error && e('div', { className: 'error' }, error),
+                    copied && e('div', { className: 'good' }, copied === 'code' ? 'Room code copied.' : 'Invite link copied.')
+                  ),
+                  e('div', { className: 'muted-box' },
+                    e('div', { className: 'row', style: { justifyContent: 'space-between', alignItems: 'center' } },
+                      e('div', { style: { fontWeight: '700', fontSize: '14px' } }, 'Room'),
+                      room?.code && e('div', { className: 'row' },
+                        e(Button, { variant: 'ghost', onClick: () => copyText(room.code, 'code') }, 'Copy code'),
+                        e(Button, { variant: 'ghost', onClick: () => copyText(inviteLink, 'link') }, 'Copy invite link')
+                      )
+                    ),
+                    e('div', { style: { fontSize: '28px', fontWeight: '800', letterSpacing: '0.12em', marginTop: '10px' } }, room?.code || '—'),
+                    e('div', { className: 'subtitle', style: { marginTop: '8px' } }, 'Share the code or invite link with Dad, Mom, and boyfriend so they can join from their own computers.')
+                  )
+                )
+              ),
+              e('section', { className: 'card table-card' },
+                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Table')),
+                e('div', { className: 'card-body' },
+                  e('div', { className: 'seat-buttons', style: { marginBottom: '12px' } }, [0,1,2,3].map((seat) => {
+                    const taken = players.some((p) => p.seat === seat);
+                    const label = `${seatLabel(seat)} ${taken && mySeat !== seat ? '· taken' : mySeat === seat ? '· you' : '· open'}`;
+                    return e(Button, { key: 'seatbtn' + seat, variant: mySeat === seat ? 'primary' : 'outline', className: 'seat-btn', onClick: () => setSeat(seat), disabled: (taken && mySeat !== seat) || game.status !== 'lobby' }, label);
+                  })),
+                  e('div', { className: 'player-grid', style: { marginBottom: '14px' } }, [0,1,2,3].map((seat) => e(PlayerSpot, {
+                    key: seat, label: seatLabel(seat), name: seatToPlayer[seat]?.name, isTurn: game.currentTurn === seat && ['ordering', 'playing'].includes(game.status), isDealer: game.dealer === seat, isSelf: mySeat === seat, handCount: seatHandsCount[seat], team: teamOfSeat(seat)
+                  }))),
+                  e('div', { className: 'table' },
+                    e('div', { className: 'table-seat north' }, e('div', { className: 'seat-label' }, 'North'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[2], 0) }).map((_, i) => e(PlayingCard, { key: 'n'+i, faceDown: true, small: true })))),
+                    e('div', { className: 'table-seat south' }, e('div', { className: 'seat-label' }, 'South'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[0], 0) }).map((_, i) => e(PlayingCard, { key: 's'+i, faceDown: true, small: true })))),
+                    e('div', { className: 'table-seat west' }, e('div', { className: 'seat-label' }, 'West'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[1], 0) }).map((_, i) => e(PlayingCard, { key: 'w'+i, faceDown: true, small: true })))),
+                    e('div', { className: 'table-seat east' }, e('div', { className: 'seat-label' }, 'East'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[3], 0) }).map((_, i) => e(PlayingCard, { key: 'e'+i, faceDown: true, small: true })))),
+                    e('div', { className: 'center' },
+                      e('div', { className: 'center-grid' }, [0,1,2,3].map((seat) => {
+                        const entry = game.currentTrick.find((x) => x.seat === seat);
+                        return e('div', { key: 'center' + seat, className: 'center-slot' }, entry ? e(PlayingCard, { card: entry.card }) : e(PlayingCard, { placeholder: true }), e('div', { className: 'center-label' }, seatLabel(seat)));
+                      }))
+                    )
+                  )
+                )
+              ),
+              e('section', { className: 'card' },
+                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Your Hand')),
+                e('div', { className: 'card-body' },
+                  mySeat === null ? e('div', { className: 'subtitle' }, 'Join a room first.') : e(React.Fragment, null,
+                    e('div', { className: 'hand-row' }, myHand.map((card) => {
+                      const allowed = isMyTurn && game.status === 'playing' && validCards.some((c) => c.id === card.id);
+                      return e(PlayingCard, { key: card.id, card, onClick: allowed ? () => playCard(card.id) : null, disabled: !allowed });
+                    })),
+                    leadSuit && game.status === 'playing' && e('div', { className: 'subtitle', style: { marginTop: '14px' } }, `Lead suit: ${SUIT_NAMES[leadSuit]}. Follow suit if you can.`)
+                  )
+                )
+              )
+            ),
+            e('div', { className: 'stack' },
+              e('section', { className: 'card' },
+                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Match Status')),
+                e('div', { className: 'card-body action-stack' },
+                  e('div', { className: 'muted-box', style: { fontSize: '14px' } }, game.message),
+                  game.roundSummary && e('div', { className: 'warn' }, game.roundSummary),
+                  e('div', { className: 'status-grid' },
+                    e('div', { className: 'muted-box' },
+                      e('div', { className: 'mini', style: { color: 'var(--muted)', marginBottom: '8px' } }, 'Score'),
+                      e('div', { className: 'row', style: { justifyContent: 'space-between', fontWeight: '700' } }, e('span', null, team0Name), e('span', null, String(game.scores[0]))),
+                      e('div', { className: 'row', style: { justifyContent: 'space-between', fontWeight: '700', marginTop: '8px' } }, e('span', null, team1Name), e('span', null, String(game.scores[1]))),
+                      e('div', { className: 'subtitle', style: { marginTop: '10px' } }, `Tricks this hand: Team 1 ${game.tricksWon[0]} · Team 2 ${game.tricksWon[1]}`)
+                    ),
+                    e('div', { className: 'muted-box' },
+                      e('div', { className: 'mini', style: { color: 'var(--muted)' } }, 'Trump'),
+                      e('div', { style: { fontSize: '20px', fontWeight: '800', marginTop: '6px' } }, game.trump ? `${SUIT_NAMES[game.trump]} ${game.trump}` : 'Not selected yet'),
+                      e('div', { className: 'subtitle', style: { marginTop: '8px' } }, `Turn-up: ${game.turnedUp ? `${game.turnedUp.rank}${game.turnedUp.suit}` : '—'}`),
+                      e('div', { className: 'subtitle' }, `Called by: ${game.orderingSeat !== null ? seatLabel(game.orderingSeat) : '—'}`)
+                    )
+                  ),
+                  iAmHost && game.status === 'lobby' && e(Button, { onClick: startGame, disabled: !allSeatsFilled }, 'Start Game'),
+                  isMyTurn && game.status === 'ordering' && game.settings?.allowGoAlone && e('label', { className: 'checkbox' }, e('input', { type: 'checkbox', checked: goAloneChoice, onChange: (ev) => setGoAloneChoice(ev.target.checked) }), e('span', null, 'Go alone this hand')),
+                  isMyTurn && game.status === 'ordering' && game.orderingStage === 'round1' && e('div', { className: 'action-stack' },
+                    e(Button, { onClick: orderUp }, `Order Up ${SUIT_NAMES[game.turnedUp?.suit] || ''}`),
+                    e(Button, { variant: 'outline', onClick: pass }, 'Pass')
+                  ),
+                  isMyTurn && game.status === 'ordering' && game.orderingStage === 'round2' && e('div', { className: 'seat-buttons' },
+                    ...SUITS.filter((s) => s !== game.turnedUp?.suit).map((suit) => e(Button, { key: suit, variant: 'outline', onClick: () => chooseTrump(suit) }, `${SUIT_NAMES[suit]} ${suit}`)),
+                    e(Button, { variant: 'ghost', onClick: pass }, 'Pass')
+                  ),
+                  iAmHost && game.status === 'roundEnd' && e(Button, { onClick: nextHand }, 'Next Hand'),
+                  iAmHost && e(Button, { variant: 'ghost', onClick: resetGame }, 'Reset Match'),
+                  game.status === 'gameover' && e('div', { className: 'good' }, `Team ${game.winnerTeam === 0 ? '1 (South/North)' : '2 (West/East)'} wins.`)
+                )
+              ),
+              e('section', { className: 'card' },
+                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Taunt Box')),
+                e('div', { className: 'card-body action-stack' },
+                  e('div', { className: 'chat-log', ref: scrollRef },
+                    messages.length === 0 ? e('div', { className: 'subtitle' }, 'No messages yet. Time to emotionally destabilize your family with card-based banter.') : messages.map((m) =>
+                      e('div', { key: m.id, className: 'msg' },
+                        e('div', { className: 'msg-meta' }, `${seatLabel(m.seat)} · ${m.name}`),
+                        e('div', null, m.body)
+                      )
+                    )
+                  ),
+                  e('div', { className: 'join-row' },
+                    e(TextInput, { value: chatInput, onChange: (ev) => setChatInput(ev.target.value), placeholder: 'Type a taunt, a plea, or an excuse...', maxLength: 280, onKeyDown: (ev) => { if (ev.key === 'Enter') sendMessage(); } }),
+                    e('div', null),
+                    e(Button, { onClick: sendMessage }, 'Send')
+                  )
+                )
+              ),
+              e('section', { className: 'card' },
+                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Rules & Notes')),
+                e('div', { className: 'card-body notes' },
+                  iAmHost && e('div', { className: 'muted-box' },
+                    e('div', { style: { fontWeight: '700', marginBottom: '10px' } }, 'Host rule toggles'),
+                    e('label', { className: 'checkbox' }, e('input', { type: 'checkbox', checked: !!game.settings?.stickDealer, onChange: (ev) => updateSettings({ stickDealer: ev.target.checked }) }), e('span', null, 'Stick the dealer')),
+                    e('div', { className: 'footer-gap' }),
+                    e('label', { className: 'checkbox' }, e('input', { type: 'checkbox', checked: !!game.settings?.allowGoAlone, onChange: (ev) => updateSettings({ allowGoAlone: ev.target.checked }) }), e('span', null, 'Allow go alone'))
+                  ),
+                  e('div', null, 'This version is true 4-human online multiplayer.'),
+                  e('div', null, 'Each player joins on their own computer with a room code or invite link.'),
+                  e('div', null, 'Cards are only visible to the player who owns them.'),
+                  e('div', null, 'Reconnect handling works by keeping each browser tied to a saved client ID.'),
+                  e('div', null, 'Seat changes are lobby-only so nobody rage-swaps positions mid-hand like a tiny card tyrant.')
+                )
+              )
+            )
+          )
+        );
+      }
+
+      createRoot(document.getElementById('app')).render(e(App));
+    </script>
+  </body>
+</html>
