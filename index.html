@@ -68,7 +68,7 @@
       .warn { background: #fff7ed; color: #9a3412; border-radius: 16px; padding: 12px 14px; font-size: 14px; }
       .error { background: #fff1f2; color: #9f1239; border-radius: 16px; padding: 12px 14px; font-size: 14px; }
       .good { background: #ecfdf5; color: #166534; border-radius: 16px; padding: 12px 14px; font-size: 14px; }
-      .table-card .card-header { background: #052e16; color: white; padding-bottom: 18px; }
+      .-card .card-header { background: #052e16; color: white; padding-bottom: 18px; }
       .seat-buttons, .player-grid, .status-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .seat-btn { text-align: left; }
       .player-spot {
@@ -80,7 +80,7 @@
       .player-spot.turn { background: #0f172a; color: white; }
       .player-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 700; font-size: 14px; }
       .mini { font-size: 12px; opacity: .8; }
-      .table {
+      . {
         position: relative;
         border: 10px solid rgba(120,53,15,.85);
         background: radial-gradient(circle at center, var(--green-2), var(--green));
@@ -534,15 +534,15 @@
             e('div', { className: 'stack' },
               e('section', { className: 'card' },
                 e('div', { className: 'card-header' },
-                  e('h1', { className: 'title' }, 'Online Euchre Table'),
-                  e('div', { className: 'subtitle' }, '4 human players only. South + North vs West + East. Browser multiplayer, no robot filler players, no nonsense.')
+                  e('h1', { className: 'title' }, 'Family Euchre Night'),
+                  e('div', { className: 'subtitle' }, '4 players must join the same room in order for the game to start!')
                 ),
                 e('div', { className: 'card-body controls' },
                   e('div', { className: 'col' },
                     e('div', { className: 'controls' },
                       e(TextInput, { value: playerName, onChange: (ev) => setPlayerName(ev.target.value), placeholder: 'Your name' }),
                       e('select', { value: preferredSeat, onChange: (ev) => setPreferredSeat(ev.target.value) },
-                        e('option', { value: '' }, 'Preferred seat (any open)'),
+                        e('option', { value: '' }, 'Random Seat'),
                         e('option', { value: '0' }, 'South'), e('option', { value: '1' }, 'West'), e('option', { value: '2' }, 'North'), e('option', { value: '3' }, 'East')
                       )
                     ),
@@ -564,12 +564,12 @@
                       )
                     ),
                     e('div', { style: { fontSize: '28px', fontWeight: '800', letterSpacing: '0.12em', marginTop: '10px' } }, room?.code || '—'),
-                    e('div', { className: 'subtitle', style: { marginTop: '8px' } }, 'Share the code or invite link with Dad, Mom, and boyfriend so they can join from their own computers.')
+                    e('div', { className: 'subtitle', style: { marginTop: '8px' } }, 'Share the code or invite link with others so they can join from their own device.')
                   )
                 )
               ),
-              e('section', { className: 'card table-card' },
-                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Table')),
+              e('section', { className: 'card -card' },
+                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, '')),
                 e('div', { className: 'card-body' },
                   e('div', { className: 'seat-buttons', style: { marginBottom: '12px' } }, [0,1,2,3].map((seat) => {
                     const taken = players.some((p) => p.seat === seat);
@@ -579,11 +579,11 @@
                   e('div', { className: 'player-grid', style: { marginBottom: '14px' } }, [0,1,2,3].map((seat) => e(PlayerSpot, {
                     key: seat, label: seatLabel(seat), name: seatToPlayer[seat]?.name, isTurn: game.currentTurn === seat && ['ordering', 'playing'].includes(game.status), isDealer: game.dealer === seat, isSelf: mySeat === seat, handCount: seatHandsCount[seat], team: teamOfSeat(seat)
                   }))),
-                  e('div', { className: 'table' },
-                    e('div', { className: 'table-seat north' }, e('div', { className: 'seat-label' }, 'North'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[2], 0) }).map((_, i) => e(PlayingCard, { key: 'n'+i, faceDown: true, small: true })))),
-                    e('div', { className: 'table-seat south' }, e('div', { className: 'seat-label' }, 'South'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[0], 0) }).map((_, i) => e(PlayingCard, { key: 's'+i, faceDown: true, small: true })))),
-                    e('div', { className: 'table-seat west' }, e('div', { className: 'seat-label' }, 'West'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[1], 0) }).map((_, i) => e(PlayingCard, { key: 'w'+i, faceDown: true, small: true })))),
-                    e('div', { className: 'table-seat east' }, e('div', { className: 'seat-label' }, 'East'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[3], 0) }).map((_, i) => e(PlayingCard, { key: 'e'+i, faceDown: true, small: true })))),
+                  e('div', { className: '' },
+                    e('div', { className: '-seat north' }, e('div', { className: 'seat-label' }, 'North'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[2], 0) }).map((_, i) => e(PlayingCard, { key: 'n'+i, faceDown: true, small: true })))),
+                    e('div', { className: '-seat south' }, e('div', { className: 'seat-label' }, 'South'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[0], 0) }).map((_, i) => e(PlayingCard, { key: 's'+i, faceDown: true, small: true })))),
+                    e('div', { className: '-seat west' }, e('div', { className: 'seat-label' }, 'West'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[1], 0) }).map((_, i) => e(PlayingCard, { key: 'w'+i, faceDown: true, small: true })))),
+                    e('div', { className: '-seat east' }, e('div', { className: 'seat-label' }, 'East'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[3], 0) }).map((_, i) => e(PlayingCard, { key: 'e'+i, faceDown: true, small: true })))),
                     e('div', { className: 'center' },
                       e('div', { className: 'center-grid' }, [0,1,2,3].map((seat) => {
                         const entry = game.currentTrick.find((x) => x.seat === seat);
