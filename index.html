@@ -568,31 +568,31 @@
                   )
                 )
               ),
-              e('section', { className: 'card -card' },
-                e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, '')),
-                e('div', { className: 'card-body' },
-                  e('div', { className: 'seat-buttons', style: { marginBottom: '12px' } }, [0,1,2,3].map((seat) => {
-                    const taken = players.some((p) => p.seat === seat);
-                    const label = `${seatLabel(seat)} ${taken && mySeat !== seat ? '· taken' : mySeat === seat ? '· you' : '· open'}`;
-                    return e(Button, { key: 'seatbtn' + seat, variant: mySeat === seat ? 'primary' : 'outline', className: 'seat-btn', onClick: () => setSeat(seat), disabled: (taken && mySeat !== seat) || game.status !== 'lobby' }, label);
-                  })),
-                  e('div', { className: 'player-grid', style: { marginBottom: '14px' } }, [0,1,2,3].map((seat) => e(PlayerSpot, {
-                    key: seat, label: seatLabel(seat), name: seatToPlayer[seat]?.name, isTurn: game.currentTurn === seat && ['ordering', 'playing'].includes(game.status), isDealer: game.dealer === seat, isSelf: mySeat === seat, handCount: seatHandsCount[seat], team: teamOfSeat(seat)
-                  }))),
-                  e('div', { className: '' },
-                    e('div', { className: '-seat north' }, e('div', { className: 'seat-label' }, 'North'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[2], 0) }).map((_, i) => e(PlayingCard, { key: 'n'+i, faceDown: true, small: true })))),
-                    e('div', { className: '-seat south' }, e('div', { className: 'seat-label' }, 'South'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[0], 0) }).map((_, i) => e(PlayingCard, { key: 's'+i, faceDown: true, small: true })))),
-                    e('div', { className: '-seat west' }, e('div', { className: 'seat-label' }, 'West'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[1], 0) }).map((_, i) => e(PlayingCard, { key: 'w'+i, faceDown: true, small: true })))),
-                    e('div', { className: '-seat east' }, e('div', { className: 'seat-label' }, 'East'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[3], 0) }).map((_, i) => e(PlayingCard, { key: 'e'+i, faceDown: true, small: true })))),
-                    e('div', { className: 'center' },
-                      e('div', { className: 'center-grid' }, [0,1,2,3].map((seat) => {
-                        const entry = game.currentTrick.find((x) => x.seat === seat);
-                        return e('div', { key: 'center' + seat, className: 'center-slot' }, entry ? e(PlayingCard, { card: entry.card }) : e(PlayingCard, { placeholder: true }), e('div', { className: 'center-label' }, seatLabel(seat)));
-                      }))
-                    )
-                  )
-                )
-              ),
+             e('section', { className: 'card table-card' },
+  e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Table')),
+  e('div', { className: 'card-body' },
+    e('div', { className: 'seat-buttons', style: { marginBottom: '12px' } }, [0,1,2,3].map((seat) => {
+      const taken = players.some((p) => p.seat === seat);
+      const label = `${seatLabel(seat)} ${taken && mySeat !== seat ? '· taken' : mySeat === seat ? '· you' : '· open'}`;
+      return e(Button, { key: 'seatbtn' + seat, variant: mySeat === seat ? 'primary' : 'outline', className: 'seat-btn', onClick: () => setSeat(seat), disabled: (taken && mySeat !== seat) || game.status !== 'lobby' }, label);
+    })),
+    e('div', { className: 'player-grid', style: { marginBottom: '14px' } }, [0,1,2,3].map((seat) => e(PlayerSpot, {
+      key: seat, label: seatLabel(seat), name: seatToPlayer[seat]?.name, isTurn: game.currentTurn === seat && ['ordering', 'playing'].includes(game.status), isDealer: game.dealer === seat, isSelf: mySeat === seat, handCount: seatHandsCount[seat], team: teamOfSeat(seat)
+    }))),
+    e('div', { className: 'table' },
+      e('div', { className: 'table-seat north' }, e('div', { className: 'seat-label' }, 'North'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[2], 0) }).map((_, i) => e(PlayingCard, { key: 'n'+i, faceDown: true, small: true })))),
+      e('div', { className: 'table-seat south' }, e('div', { className: 'seat-label' }, 'South'), e('div', { className: 'card-row' }, Array.from({ length: Math.max(seatHandsCount[0], 0) }).map((_, i) => e(PlayingCard, { key: 's'+i, faceDown: true, small: true })))),
+      e('div', { className: 'table-seat west' }, e('div', { className: 'seat-label' }, 'West'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[1], 0) }).map((_, i) => e(PlayingCard, { key: 'w'+i, faceDown: true, small: true })))),
+      e('div', { className: 'table-seat east' }, e('div', { className: 'seat-label' }, 'East'), e('div', { className: 'card-col' }, Array.from({ length: Math.max(seatHandsCount[3], 0) }).map((_, i) => e(PlayingCard, { key: 'e'+i, faceDown: true, small: true })))),
+      e('div', { className: 'center' },
+        e('div', { className: 'center-grid' }, [0,1,2,3].map((seat) => {
+          const entry = game.currentTrick.find((x) => x.seat === seat);
+          return e('div', { key: 'center' + seat, className: 'center-slot' }, entry ? e(PlayingCard, { card: entry.card }) : e(PlayingCard, { placeholder: true }), e('div', { className: 'center-label' }, seatLabel(seat)));
+        }))
+      )
+    )
+  )
+),
               e('section', { className: 'card' },
                 e('div', { className: 'card-header' }, e('h2', { style: { margin: 0, fontSize: '22px', fontWeight: '800' } }, 'Your Hand')),
                 e('div', { className: 'card-body' },
